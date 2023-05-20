@@ -1,86 +1,75 @@
-import {FastifyInstance} from "fastify";
-import moment from "moment";
-import {getBearerTokenAzul} from "../shared/getBearerTokenAzul";
-import {getAzulFlights} from "../shared/getAzulFlights";
-
-
-interface AzulSearchRequest {
-    departure: string,
-    arrival: string,
-    date: string
-}
+/* eslint-disable no-undef */
+import { FastifyInstance } from 'fastify'
+import { getBearerTokenAzul } from '../shared/getBearerTokenAzul'
+import { getAzulFlights } from '../shared/getAzulFlights'
+import { getFlightData } from '../shared/getFlightData'
+import { getDatesArray } from '../shared/getDatesArray'
+import { setBodyRequest } from '../shared/setBodyRequest'
+import {
+  AzulSearchRequest,
+  FlightDataResponseInterface,
+  AzulSearchRequestMultipleDates,
+} from '../interfaces/flightDataInterface'
 
 export async function azulRoutes(app: FastifyInstance) {
-    app.post('/search', async (request) => {
-        const {departure, arrival, date}: AzulSearchRequest = request.body;
+  app.post('/search', async (request) => {
+    try {
+      const { departure, arrival, date } = request.body as AzulSearchRequest
 
-        const bodyRequest = {
-            "criteria": [
-                {
-                    "departureStation": departure,
-                    "arrivalStation": arrival,
-                    "std": moment(date, "DD/MM/YYYY").format("MM/DD/YYYY"),
-                    "departureDate": moment(date, "DD/MM/YYYY").format("YYYY-MM-DD")
-                }
-            ],
-            "passengers": [
-                {
-                    "type": "ADT",
-                    "count": "1",
-                    "companionPass": "false"
-                }
-            ],
-            "flexibleDays": {
-                "daysToLeft": "3",
-                "daysToRight": "3"
-            },
-            "currencyCode": "BRL"
+      const bodyRequest = setBodyRequest(departure, arrival, date)
+
+      const bearerToken = await getBearerTokenAzul()
+
+      const data = await getAzulFlights(bodyRequest, bearerToken)
+
+      if (data === undefined || data.trips[0].flightType === null) {
+        return { message: 'No flights found for this date.' }
+      }
+
+      return await getFlightData(data)
+    } catch (error) {
+      // @ts-ignore
+      return { message: error.message }
+    }
+  })
+
+  app.post('/search/multipleDates/register', async (request, reply) => {
+    try {
+      // @ts-ignore
+      const { departure, arrival, dateStart, dateEnd } =
+        request.body as AzulSearchRequestMultipleDates
+
+      const datesArray = getDatesArray(dateStart, dateEnd)
+
+      const response: FlightDataResponseInterface[] = []
+
+      for (const date of datesArray) {
+        const bodyRequest = setBodyRequest(departure, arrival, date)
+        const bearerToken = await getBearerTokenAzul()
+        const data = await getAzulFlights(bodyRequest, bearerToken)
+        if (data === undefined || data.trips[0].flightType === null) {
+          continue
         }
+        response.push(await getFlightData(data))
+        // store data in app.db
+        // store cookie in app.db
+      }
+      // response {message: In a few minutes you will receive an email with the results.}
+      return response
+    } catch (error) {
+      // @ts-ignore
+      return { message: error.message }
+    }
+  })
 
-        const bearerToken = await getBearerTokenAzul();
-
-        const {trips: [travel]} = await getAzulFlights(bodyRequest, bearerToken);
-
-        if (travel.journeys === null) return {message: "No flights found for this date."}
-
-        const flightData = {
-            qtdOfFlights: travel.journeys.length,
-            flights: []
-        };
-
-        const journeys = travel.journeys;
-        for (let i = 0; i < journeys.length; i++) {
-            const journey = journeys[i];
-            const fares = journey.fares[0];
-            const paxPoints = fares.paxPoints[0];
-            const levels = paxPoints.levels[0];
-
-            const flight = {
-                value: levels.points,
-                connection: journey.identifier.connections?.count,
-                duration: `${journey.identifier.duration.hours}:${journey.identifier.duration.minutes}`,
-                airportConnections: journey.identifier.connections?.count > 0 ? [] : undefined
-            };
-
-            if (flight.connection > 0) {
-                const stationsInformation = journey.identifier.connections.stationsInformation;
-                for (let j = 0; j < stationsInformation.length; j++) {
-                    flight.airportConnections.push(stationsInformation[j].code);
-                }
-            }
-
-            flightData.flights.push(flight);
-        }
-
-        return {
-            departureStation: travel.departureStation,
-            arrivalStation: travel.arrivalStation,
-            departureDate: moment(travel.std).format("DD/MM/YYYY"),
-            lowestPoints: travel.fareInformation.lowestPoints,
-            highestPoints: travel.fareInformation.highestPoints,
-            searchDate: moment().format("DD/MM/YYYY HH:mm:ss"),
-            flightData: flightData
-        };
-
-    })
+  app.get('/search/multipleDates/results', async (request, reply) => {
+    try {
+      // get cookie from app.db
+      // get data from app.db
+      // return data
+    } catch (error) {
+      // @ts-ignore
+      return { message: error.message }
+    }
+  })
 }

@@ -68,3 +68,10 @@ export interface AzulSearchRequest {
   arrival: string
   date: string
 }
+
+export interface AzulSearchRequestMultipleDates {
+  departure: string
+  arrival: string
+  dateStart: string
+  dateEnd: string
+}
