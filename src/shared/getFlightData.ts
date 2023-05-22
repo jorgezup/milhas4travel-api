@@ -4,7 +4,7 @@ import {
   flightsInterface,
 } from '../interfaces/flightDataInterface'
 
-export async function getFlightData({ trips }: FlightDataInterface) {
+export function getFlightData({ trips }: FlightDataInterface) {
   const travel = trips[0]
   const flights: flightsInterface[] = []
   const flightData = {
