@@ -4,7 +4,7 @@ import { z } from 'zod'
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
   PORT: z.number().default(3000),
-  DATABASE_FILE: z.string(),
+  MONGO_URI: z.string(),
 })
 
 const _env = envSchema.safeParse(process.env)
