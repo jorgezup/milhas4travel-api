@@ -6,6 +6,7 @@ import { interlineRoutes } from './routes/interline'
 import { smilesRoutes } from './routes/smiles'
 import cookie from '@fastify/cookie'
 import connectToDatabase from './db'
+import queue from './queue'
 
 const app = fastify()
 
@@ -13,6 +14,16 @@ app.register(cookie)
 
 app.get('/', async () => {
   return { hello: 'world' }
+})
+
+app.get('/jobs', async () => {
+  // Obter informações sobre a fila
+  const queueInfo = await queue.getJobCounts()
+
+  // Obter todos os jobs pendentes na fila
+  const pendingJobs = await queue.getJobs(['waiting', 'active'])
+
+  return { queueInfo, pendingJobs }
 })
 
 app.register(azulRoutes, { prefix: '/azul' })
