@@ -43,7 +43,7 @@ export interface FlightDataInterface {
   ]
 }
 
-export interface flightsInterface {
+export interface FlightsInterface {
   value: number
   connection?: number
   duration: string
@@ -59,7 +59,7 @@ export interface FlightDataResponseInterface {
   searchDate: string
   flightData: {
     qtdOfFlights: number
-    flights: flightsInterface[]
+    flights: FlightsInterface[]
   }
 }
 
