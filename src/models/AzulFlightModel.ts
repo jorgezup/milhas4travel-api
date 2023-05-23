@@ -1,6 +1,8 @@
 import { Schema, model } from 'mongoose'
 
 const AzulFlightSchema = new Schema({
+  searchId: String,
+  sessionId: String,
   departureStation: String,
   arrivalStation: String,
   departureDate: String,
@@ -12,10 +14,16 @@ const AzulFlightSchema = new Schema({
     flights: [
       {
         value: Number,
+        connection: Number,
         duration: String,
         airportConnections: [String],
       },
     ],
+  },
+  options: {
+    multipleDates: Boolean,
+    multipleDestinations: Boolean,
+    multipleOrigins: Boolean,
   },
 })
 
