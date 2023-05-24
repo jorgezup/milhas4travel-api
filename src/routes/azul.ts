@@ -13,89 +13,43 @@ import AzulFlight from '../models/AzulFlightModel'
 import queue from '../queue'
 import { randomUUID } from 'crypto'
 import getCookie from '../shared/getCookie'
-import hasFlightInDb from '../shared/hasFlightInDb'
 import formatDataFromDb from '../shared/formatDataFromDb'
 
 export async function azulRoutes(app: FastifyInstance) {
   app.post('/search', async (request, reply) => {
     try {
-      const { departure, arrival, date } = request.body as AzulSearchRequest
+      const { departuresStations, arrivalsStations, dateStart, dateEnd } =
+        request.body as AzulSearchRequest
 
-      const flight = await AzulFlight.find({
-        departureStation: departure.toUpperCase(),
-        arrivalStation: arrival.toUpperCase(),
-        departureDate: date,
-      })
-        .sort({ searchDate: -1 })
-        .limit(1) // get the last search
+      // const departureArray = Array.isArray(departure) ? departure : [departure]
+      // const arrivalArray = Array.isArray(arrival) ? arrival : [arrival]
 
-      // if there is a flight in the database, check if it is still valid
-      if (flight.length > 0) {
-        const hasFlight = hasFlightInDb(flight[0])
+      const datesArray = dateEnd
+        ? getDatesArray(dateStart, dateEnd)
+        : [dateStart]
 
-        if (hasFlight) {
-          return formatDataFromDb(flight) // return the flight from the database
+      const bodyRequests = []
+
+      for (const departure of departuresStations) {
+        for (const arrival of arrivalsStations) {
+          for (const date of datesArray) {
+            const bodyRequest = setBodyRequest(departure, arrival, date)
+            bodyRequests.push(bodyRequest)
+          }
         }
       }
 
-      const bodyRequest = setBodyRequest(departure, arrival, date)
-
-      const bearerToken = await getBearerTokenAzul()
-
-      const response = await getAzulFlights(bodyRequest, bearerToken)
-
-      if (response === undefined || response.trips[0].flightType === null) {
-        return { message: 'No flights found for this date.' }
-      }
-
       const searchId = randomUUID()
 
       const sessionId = getCookie(request, reply)
 
-      const data = getFlightData(response)
-
-      const options = {
-        multipleDates: false,
-        multipleDestinations: false,
-        multipleOrigins: false,
-      }
-
-      const dataToSave = { ...data, searchId, sessionId, options }
-
-      const flightToSave = new AzulFlight(dataToSave)
-
-      await flightToSave.save()
-
-      return { searchId, options, data }
-    } catch (error) {
-      // @ts-ignore
-      return { message: error.message }
-    }
-  })
-
-  app.post('/search/multipleDates/register', async (request, reply) => {
-    try {
-      const { departure, arrival, dateStart, dateEnd } =
-        request.body as AzulSearchRequestMultipleDates
-
-      const datesArray = getDatesArray(dateStart, dateEnd)
-
-      const bearerToken = await getBearerTokenAzul()
-
-      const searchId = randomUUID()
-
-      const sessionId = getCookie(request, reply)
-
-      for (const date of datesArray) {
-        const bodyRequest = setBodyRequest(departure, arrival, date)
-
-        await queue.add('AzulFlight', {
+      bodyRequests.forEach((bodyRequest) => {
+        queue.add('AzulFlight', {
           bodyRequest,
-          bearerToken,
           searchId,
           sessionId,
         })
-      }
+      })
 
       return reply.status(200).send({
         message:
@@ -107,18 +61,27 @@ export async function azulRoutes(app: FastifyInstance) {
     }
   })
 
-  app.get('/search/multipleDates/latest', async () => {
-    try {
-      const flights = await AzulFlight.find()
-        .where('options.multipleDates')
-        .equals(true)
-        .sort({ createdAt: -1 })
-        .limit(1)
+  interface Request {
+    arrivalStation: string
+  }
 
-      return { flights }
+  // create an route (GET /cheapest) the receive the arrival airport and return the 10 cheapest flights
+  app.get('/cheapest', async (request, reply) => {
+    try {
+      const { arrivalStation } = request.query as Request
+
+      const flights = await AzulFlight.find({
+        arrivalStation,
+      })
+        .sort({ lowestPoints: 1 })
+        .limit(10)
+
+      const formattedData = formatDataFromDb(flights)
+
+      return reply.status(200).send(formattedData)
     } catch (error) {
       // @ts-ignore
-      return { message: error.message }
+      return reply.status(500).send({ message: error.message })
     }
   })
 }
