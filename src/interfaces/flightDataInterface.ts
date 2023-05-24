@@ -64,9 +64,10 @@ export interface FlightDataResponseInterface {
 }
 
 export interface AzulSearchRequest {
-  departure: string
-  arrival: string
-  date: string
+  departuresStations: [string]
+  arrivalsStations: [string]
+  dateStart: string
+  dateEnd?: string
 }
 
 export interface AzulSearchRequestMultipleDates {
