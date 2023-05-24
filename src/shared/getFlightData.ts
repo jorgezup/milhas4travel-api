@@ -1,12 +1,12 @@
 import moment from 'moment/moment'
 import {
   FlightDataInterface,
-  flightsInterface,
+  FlightsInterface,
 } from '../interfaces/flightDataInterface'
 
 export function getFlightData({ trips }: FlightDataInterface) {
   const travel = trips[0]
-  const flights: flightsInterface[] = []
+  const flights: FlightsInterface[] = []
   const flightData = {
     qtdOfFlights: travel.journeys.length,
     flights,
