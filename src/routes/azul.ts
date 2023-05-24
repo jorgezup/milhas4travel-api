@@ -1,14 +1,8 @@
 /* eslint-disable no-undef */
 import { FastifyInstance } from 'fastify'
-import { getBearerTokenAzul } from '../shared/getBearerTokenAzul'
-import { getAzulFlights } from '../shared/getAzulFlights'
-import { getFlightData } from '../shared/getFlightData'
 import { getDatesArray } from '../shared/getDatesArray'
 import { setBodyRequest } from '../shared/setBodyRequest'
-import {
-  AzulSearchRequest,
-  AzulSearchRequestMultipleDates,
-} from '../interfaces/flightDataInterface'
+import { AzulSearchRequest } from '../interfaces/flightDataInterface'
 import AzulFlight from '../models/AzulFlightModel'
 import queue from '../queue'
 import { randomUUID } from 'crypto'
@@ -20,9 +14,6 @@ export async function azulRoutes(app: FastifyInstance) {
     try {
       const { departuresStations, arrivalsStations, dateStart, dateEnd } =
         request.body as AzulSearchRequest
-
-      // const departureArray = Array.isArray(departure) ? departure : [departure]
-      // const arrivalArray = Array.isArray(arrival) ? arrival : [arrival]
 
       const datesArray = dateEnd
         ? getDatesArray(dateStart, dateEnd)
@@ -65,7 +56,6 @@ export async function azulRoutes(app: FastifyInstance) {
     arrivalStation: string
   }
 
-  // create an route (GET /cheapest) the receive the arrival airport and return the 10 cheapest flights
   app.get('/cheapest', async (request, reply) => {
     try {
       const { arrivalStation } = request.query as Request
