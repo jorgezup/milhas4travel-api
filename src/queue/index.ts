@@ -3,6 +3,7 @@ import { env } from '../env'
 import { getAzulFlights } from '../shared/getAzulFlights'
 import { getFlightData } from '../shared/getFlightData'
 import AzulFlight from '../models/AzulFlightModel'
+import { getBearerTokenAzul } from '../shared/getBearerTokenAzul'
 
 const queue = new Queue('queue', {
   connection: { host: env.REDIS_HOST, port: Number(env.REDIS_PORT) },
@@ -13,7 +14,10 @@ const queue = new Queue('queue', {
 const worker = new Worker(
   'queue',
   async (job) => {
-    const { bodyRequest, bearerToken, searchId, sessionId } = job.data
+    const { bodyRequest, searchId, sessionId } = job.data
+
+    const bearerToken = await getBearerTokenAzul()
+
     const response = await getAzulFlights(bodyRequest, bearerToken)
 
     if (response === undefined || response.trips[0].flightType === null) {
@@ -22,14 +26,10 @@ const worker = new Worker(
 
     const flightData = getFlightData(response)
 
-    const options = {
-      multipleDates: true,
-      multipleDestinations: false,
-      multipleOrigins: false,
-    }
+    const dataToSave = { ...flightData, searchId, sessionId }
 
-    const dataToSave = { ...flightData, searchId, sessionId, options }
     const flightToSave = new AzulFlight(dataToSave)
+
     await flightToSave.save()
   },
   { connection: { host: env.REDIS_HOST, port: Number(env.REDIS_PORT) } },
