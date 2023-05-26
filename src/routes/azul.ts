@@ -1,13 +1,12 @@
 /* eslint-disable no-undef */
 import { FastifyInstance } from 'fastify'
 import { getDatesArray } from '../shared/getDatesArray'
-import { setBodyRequest } from '../shared/setBodyRequest'
 import { AzulSearchRequest } from '../interfaces/flightDataInterface'
 import AzulFlight from '../models/AzulFlightModel'
-import queue from '../queue'
 import { randomUUID } from 'crypto'
 import getCookie from '../shared/getCookie'
 import formatDataFromDb from '../shared/formatDataFromDb'
+import processSearchRequest from '../shared/processSearchRequest'
 
 export async function azulRoutes(app: FastifyInstance) {
   app.post('/search', async (request, reply) => {
@@ -19,28 +18,16 @@ export async function azulRoutes(app: FastifyInstance) {
         ? getDatesArray(dateStart, dateEnd)
         : [dateStart]
 
-      const bodyRequests = []
-
-      for (const departure of departuresStations) {
-        for (const arrival of arrivalsStations) {
-          for (const date of datesArray) {
-            const bodyRequest = setBodyRequest(departure, arrival, date)
-            bodyRequests.push(bodyRequest)
-          }
-        }
-      }
-
       const searchId = randomUUID()
-
       const sessionId = getCookie(request, reply)
 
-      bodyRequests.forEach((bodyRequest) => {
-        queue.add('AzulFlight', {
-          bodyRequest,
-          searchId,
-          sessionId,
-        })
-      })
+      await processSearchRequest(
+        departuresStations,
+        arrivalsStations,
+        datesArray,
+        searchId,
+        sessionId,
+      )
 
       return reply.status(200).send({
         message:
@@ -52,19 +39,32 @@ export async function azulRoutes(app: FastifyInstance) {
     }
   })
 
-  interface Request {
-    arrivalStation: string
-  }
-
   app.get('/cheapest', async (request, reply) => {
     try {
-      const { arrivalStation } = request.query as Request
+      const { arrivalStation } = request.query as { arrivalStation: string }
 
       const flights = await AzulFlight.find({
         arrivalStation,
       })
         .sort({ lowestPoints: 1 })
         .limit(10)
+
+      const formattedData = formatDataFromDb(flights)
+
+      return reply.status(200).send(formattedData)
+    } catch (error) {
+      // @ts-ignore
+      return reply.status(500).send({ message: error.message })
+    }
+  })
+  // get flights by searchId
+  app.get('/search/:searchId', async (request, reply) => {
+    try {
+      const { searchId } = request.params as { searchId: string }
+
+      const flights = await AzulFlight.find({
+        searchId,
+      })
 
       const formattedData = formatDataFromDb(flights)
 
