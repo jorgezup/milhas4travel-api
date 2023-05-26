@@ -8,7 +8,7 @@ import cookie from '@fastify/cookie'
 import connectToDatabase from './db'
 import queue from './queue'
 
-const app = fastify()
+const app = fastify({ logger: true })
 
 app.register(cookie)
 
@@ -34,7 +34,7 @@ app.register(smilesRoutes, { prefix: '/smiles' })
 connectToDatabase()
   .then(() => {
     console.log('Connected to database')
-    app.listen({ port: env.PORT }).then(() => {
+    app.listen({ port: env.PORT, host: env.HOST }).then(() => {
       console.log(`Server is listening on port ${env.PORT}`)
     })
   })
