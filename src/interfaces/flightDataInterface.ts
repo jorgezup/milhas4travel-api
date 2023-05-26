@@ -63,6 +63,10 @@ export interface FlightDataResponseInterface {
   }
 }
 
+export interface FlightInDb extends FlightDataResponseInterface {
+  searchId?: string
+}
+
 export interface AzulSearchRequest {
   departuresStations: [string]
   arrivalsStations: [string]
@@ -70,9 +74,27 @@ export interface AzulSearchRequest {
   dateEnd?: string
 }
 
-export interface AzulSearchRequestMultipleDates {
-  departure: string
-  arrival: string
-  dateStart: string
-  dateEnd: string
+export interface CriteriaInterface {
+  departureStation: string
+  arrivalStation: string
+  std: string
+  departureDate: string
+}
+
+export interface PassengerInterface {
+  type: string
+  count: string
+  companionPass: string
+}
+
+export interface FlexibleDaysInterface {
+  daysToLeft: string
+  daysToRight: string
+}
+
+export interface BodyRequestInterface {
+  criteria: CriteriaInterface[]
+  passengers: PassengerInterface[]
+  flexibleDays: FlexibleDaysInterface
+  currencyCode: string
 }
