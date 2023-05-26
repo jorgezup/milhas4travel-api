@@ -1,10 +1,11 @@
 import moment from 'moment/moment'
+import { BodyRequestInterface } from '../interfaces/flightDataInterface'
 
 export const setBodyRequest = (
   departure: string,
   arrival: string,
   date: string,
-) => ({
+): BodyRequestInterface => ({
   criteria: [
     {
       departureStation: departure,
