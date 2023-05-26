@@ -20,11 +20,6 @@ const AzulFlightSchema = new Schema({
       },
     ],
   },
-  options: {
-    multipleDates: Boolean,
-    multipleDestinations: Boolean,
-    multipleOrigins: Boolean,
-  },
 })
 
 const AzulFlight = model('AzulFlight', AzulFlightSchema)
