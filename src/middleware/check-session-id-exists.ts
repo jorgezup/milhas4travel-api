@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
+import { randomUUID } from 'crypto'
 
 export async function checkSessionIdExistsMiddleware(
   request: FastifyRequest,
@@ -6,8 +7,12 @@ export async function checkSessionIdExistsMiddleware(
 ) {
   const sessionId = request.cookies.sessionId
   if (!sessionId) {
-    return reply.status(401).send({
-      message: 'Unauthorized',
+    const sessionId = randomUUID()
+    reply.setCookie('sessionId', sessionId, {
+      path: '/', // the cookie will be available for all routes
+      httpOnly: true, // not accessible from javascript
+      sameSite: 'lax', // csrf
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     })
   }
 }
